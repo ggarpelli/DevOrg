@@ -1,4 +1,4 @@
-# Unique name for this workflow
+# Unique name for this workflows
 name: Validate PR on develop branch
 
 # Definition when the workflow should run
