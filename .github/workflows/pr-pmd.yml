@@ -56,29 +56,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           custom-pmd-ruleset-path: '${{fromJson(needs.get-settings.outputs.workflowSettings).rulesetPath}}'
 
-  bug-fixer:
-    name: 'AI BugFixer'
-    if: ${{fromJson(needs.get-settings.outputs.workflowSettings).runAI == true }}
-    runs-on: 'ubuntu-latest'
-    needs: get-settings
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: 'Checkout CodeReviewAssistant-BugFixer'
-        uses: 'actions/checkout@v3'
-
-
-      - name: 'Run CodeReviewAssistant-BugFixer'
-        uses: './.github/actions/CodeReviewAssistant-BugFixer'
-        with:
-          openai_key: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_OPENAI_KEY }}'
-          openai_org: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_OPENAI_ORG }}'
-          app_id: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_APP_ID }}'
-          private_pem: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_PRIVATE_KEY }}'
-          client_id: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_CLIENT_ID }}'
-          client_secret: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_CLIENT_SECRET }}'
-
   graph-engine-scanner:
     name: 'Salesforce Graph Engine'
     if: ${{fromJson(needs.get-settings.outputs.workflowSettings).runGraphEngine == true }}
@@ -114,26 +91,3 @@ jobs:
         graph_engine_timeout_ms: '${{fromJson(needs.get-settings.outputs.workflowSettings).graphEngineTimeoutMS}}'
         graph_engine_remove_expansion_limit: '${{fromJson(needs.get-settings.outputs.workflowSettings).graphEngineRemoveExpansionLimit}}'
         graph_engine_ignore_limit_reached_errors: '${{fromJson(needs.get-settings.outputs.workflowSettings).graphEngineIgnoreLimitReachedErrors}}'
-
-  doc-gen:
-    name: 'AI DocGen'
-    if: ${{fromJson(needs.get-settings.outputs.workflowSettings).runDocGen == true }}
-    needs: get-settings
-    runs-on: 'ubuntu-latest'
-    steps:
-      - name: 'Checkout'
-        uses: 'actions/checkout@v2'
-
-      - name: 'Checkout CodeReviewAssistant-DocstringGenerator'
-        uses: 'actions/checkout@v2'
-
-
-      - name: 'Run CodeReviewAssistant-DocstringGenerator'
-        uses: './.github/actions/CodeReviewAssistant-DocstringGenerator'
-        with:
-          openai_key: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_OPENAI_KEY }}'
-          openai_org: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_OPENAI_ORG }}'
-          app_id: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_APP_ID }}'
-          private_pem: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_PRIVATE_KEY }}'
-          client_id: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_CLIENT_ID }}'
-          client_secret: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_CLIENT_SECRET }}'
