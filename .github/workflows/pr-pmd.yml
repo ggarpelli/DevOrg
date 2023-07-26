@@ -37,10 +37,6 @@ jobs:
 
       - name: 'Checkout CodeReviewAssistant-PMD'
         uses: 'actions/checkout@v3'
-        with:
-          repository: 'OSFDigital/CodeReviewAssistant-PMD'
-          ssh-key: '${{ secrets.CODE_REVIEW_ASSISTANT_PMD_SSH_KEY }}'
-          path: 'scanner'
 
       - name: Install Salesforce CLI
         run: |
@@ -71,11 +67,7 @@ jobs:
 
       - name: 'Checkout CodeReviewAssistant-BugFixer'
         uses: 'actions/checkout@v3'
-        with:
-          repository: 'OSFDigital/CodeReviewAssistant-BugFixer'
-          ref: 'main'
-          ssh-key: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_SSH_KEY }}'
-          path: '.github/actions/CodeReviewAssistant-BugFixer'
+
 
       - name: 'Run CodeReviewAssistant-BugFixer'
         uses: './.github/actions/CodeReviewAssistant-BugFixer'
@@ -98,10 +90,7 @@ jobs:
 
     - name: 'Checkout CodeReviewAssistant-PMD'
       uses: 'actions/checkout@v3'
-      with:
-        repository: 'OSFDigital/CodeReviewAssistant-PMD'
-        ssh-key: '${{ secrets.CODE_REVIEW_ASSISTANT_PMD_SSH_KEY }}'
-        path: 'scanner'
+
 
     - name: Install Salesforce CLI
       run: |
@@ -137,11 +126,7 @@ jobs:
 
       - name: 'Checkout CodeReviewAssistant-DocstringGenerator'
         uses: 'actions/checkout@v2'
-        with:
-          repository: 'OSFDigital/CodeReviewAssistant-DocstringGenerator'
-          ref: 'main'
-          ssh-key: '${{ secrets.CODE_REVIEW_ASSISTANT_DOCSTRING_GENERATOR_SSH_KEY }}'
-          path: '.github/actions/CodeReviewAssistant-DocstringGenerator'
+
 
       - name: 'Run CodeReviewAssistant-DocstringGenerator'
         uses: './.github/actions/CodeReviewAssistant-DocstringGenerator'
