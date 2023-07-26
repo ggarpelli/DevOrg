@@ -1,0 +1,154 @@
+name: 'CodeReviewAssistant-PMD'
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  get-settings:
+    name: 'Get Settings Job'
+    runs-on: 'ubuntu-latest'
+    outputs:
+      workflowSettings: ${{ steps.getSettings.outputs.workflowSettings }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: 'Get Settings'
+        id: getSettings
+        run: |
+          content="{\"rulesetPath\":\"./pmd-settings.xml\",\"runAI\":true}"
+          if test -f "./workflow-settings.json"; then
+            content=`cat ./workflow-settings.json`
+            # the following lines are only required for multi line json
+            content="${content//'%'/''}"
+            content="${content//$'\n'/' '}"
+            content="${content//$'\r'/' '}"
+          fi
+          echo "workflowSettings=$content" >> $GITHUB_OUTPUT
+          echo "$content"
+
+  pmd-checker:
+    name: 'Salesforce Code Analyzer'
+    runs-on: 'ubuntu-latest'
+    needs: get-settings
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: 'Checkout CodeReviewAssistant-PMD'
+        uses: 'actions/checkout@v3'
+        with:
+          repository: 'OSFDigital/CodeReviewAssistant-PMD'
+          ssh-key: '${{ secrets.CODE_REVIEW_ASSISTANT_PMD_SSH_KEY }}'
+          path: 'scanner'
+
+      - name: Install Salesforce CLI
+        run: |
+          wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz -q
+          mkdir sfdx
+          tar xJf sfdx-linux-x64.tar.xz -C sfdx --strip-components 1
+          echo "sfdx/bin" >> $GITHUB_PATH
+      - name: Install Salesforce Scanner CLI Plugin
+        run: sfdx plugins:install @salesforce/sfdx-scanner
+
+      - name: 'Run Salesforce Code Analyzer'
+        uses: './scanner'
+        with:
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          pr_number: ${{ github.event.number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          custom-pmd-ruleset-path: '${{fromJson(needs.get-settings.outputs.workflowSettings).rulesetPath}}'
+
+  bug-fixer:
+    name: 'AI BugFixer'
+    if: ${{fromJson(needs.get-settings.outputs.workflowSettings).runAI == true }}
+    runs-on: 'ubuntu-latest'
+    needs: get-settings
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: 'Checkout CodeReviewAssistant-BugFixer'
+        uses: 'actions/checkout@v3'
+        with:
+          repository: 'OSFDigital/CodeReviewAssistant-BugFixer'
+          ref: 'main'
+          ssh-key: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_SSH_KEY }}'
+          path: '.github/actions/CodeReviewAssistant-BugFixer'
+
+      - name: 'Run CodeReviewAssistant-BugFixer'
+        uses: './.github/actions/CodeReviewAssistant-BugFixer'
+        with:
+          openai_key: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_OPENAI_KEY }}'
+          openai_org: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_OPENAI_ORG }}'
+          app_id: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_APP_ID }}'
+          private_pem: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_PRIVATE_KEY }}'
+          client_id: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_CLIENT_ID }}'
+          client_secret: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_CLIENT_SECRET }}'
+
+  graph-engine-scanner:
+    name: 'Salesforce Graph Engine'
+    if: ${{fromJson(needs.get-settings.outputs.workflowSettings).runGraphEngine == true }}
+    runs-on: 'ubuntu-latest'
+    needs: get-settings
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: 'Checkout CodeReviewAssistant-PMD'
+      uses: 'actions/checkout@v3'
+      with:
+        repository: 'OSFDigital/CodeReviewAssistant-PMD'
+        ssh-key: '${{ secrets.CODE_REVIEW_ASSISTANT_PMD_SSH_KEY }}'
+        path: 'scanner'
+
+    - name: Install Salesforce CLI
+      run: |
+        wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz -q
+        mkdir sfdx
+        tar xJf sfdx-linux-x64.tar.xz -C sfdx --strip-components 1
+        echo "sfdx/bin" >> $GITHUB_PATH
+
+    - name: Install Salesforce Scanner CLI Plugin
+      run: sfdx plugins:install @salesforce/sfdx-scanner
+
+    - name: 'Run Salesforce Graph Engine'
+      uses: ./scanner/graph-engine
+      with:
+        owner: ${{ github.repository_owner }}
+        repo: ${{ github.event.repository.name }}
+        pr_number: ${{ github.event.number }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        project_dir: '${{fromJson(needs.get-settings.outputs.workflowSettings).projectDir}}'
+        selected_engine_heap_size: '${{fromJson(needs.get-settings.outputs.workflowSettings).graphEngineHeapSize}}'
+        graph_engine_timeout_ms: '${{fromJson(needs.get-settings.outputs.workflowSettings).graphEngineTimeoutMS}}'
+        graph_engine_remove_expansion_limit: '${{fromJson(needs.get-settings.outputs.workflowSettings).graphEngineRemoveExpansionLimit}}'
+        graph_engine_ignore_limit_reached_errors: '${{fromJson(needs.get-settings.outputs.workflowSettings).graphEngineIgnoreLimitReachedErrors}}'
+
+  doc-gen:
+    name: 'AI DocGen'
+    if: ${{fromJson(needs.get-settings.outputs.workflowSettings).runDocGen == true }}
+    needs: get-settings
+    runs-on: 'ubuntu-latest'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@v2'
+
+      - name: 'Checkout CodeReviewAssistant-DocstringGenerator'
+        uses: 'actions/checkout@v2'
+        with:
+          repository: 'OSFDigital/CodeReviewAssistant-DocstringGenerator'
+          ref: 'main'
+          ssh-key: '${{ secrets.CODE_REVIEW_ASSISTANT_DOCSTRING_GENERATOR_SSH_KEY }}'
+          path: '.github/actions/CodeReviewAssistant-DocstringGenerator'
+
+      - name: 'Run CodeReviewAssistant-DocstringGenerator'
+        uses: './.github/actions/CodeReviewAssistant-DocstringGenerator'
+        with:
+          openai_key: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_OPENAI_KEY }}'
+          openai_org: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_OPENAI_ORG }}'
+          app_id: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_APP_ID }}'
+          private_pem: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_PRIVATE_KEY }}'
+          client_id: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_CLIENT_ID }}'
+          client_secret: '${{ secrets.CODE_REVIEW_ASSISTANT_BUG_FIXER_GITHUB_CLIENT_SECRET }}'
