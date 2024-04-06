@@ -1,6 +1,6 @@
 ### Description
 
-Please include a summary of the change and what has changed.
+Please include a summary of the change and what has changed.s
 
 ### Jira Ticket
 
